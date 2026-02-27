@@ -1,145 +1,160 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <cmath>
+
 #include "Sampler.h"
 #include "Projection.h"
 #include "SphereRenderer.h"
 
-std::vector<P2> disk;
-std::vector<P3> ball;
-sf::Clock frameClock;
-
-
-bool running = false;
-int index = 0;
-const int MAX = 6000;
+namespace
+{
+    constexpr int WINDOW_WIDTH  = 1400;
+    constexpr int WINDOW_HEIGHT = 600;
+    constexpr int MAX_SAMPLES   = 6000;
+}
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(1400,600),"Concentration of Measure");
+    std::vector<Sample2D> diskSamples;
+    std::vector<Sample3D> ballSamples;
+
+    bool running = false;
+    int sampleIndex = 0;
+
+    sf::RenderWindow window(
+        sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT),
+        "Concentration of Measure"
+    );
 
     sf::Font font;
-    font.loadFromFile("arial.ttf");
+    if (!font.loadFromFile("arial.ttf"))
+        return -1;
 
-    // ---- Start button ----
-    sf::RectangleShape button({120,40});
-    button.setPosition(10,10);
+    sf::RectangleShape button({120.f, 40.f});
+    button.setPosition(10.f, 10.f);
     button.setFillColor(sf::Color::Transparent);
-    button.setOutlineThickness(2);
+    button.setOutlineThickness(2.f);
     button.setOutlineColor(sf::Color::White);
 
-    sf::Text text("START",font,18);
-    text.setPosition(30,18);
-    text.setFillColor(sf::Color::White);
+    sf::Text buttonText("START", font, 18);
+    buttonText.setPosition(30.f, 18.f);
+    buttonText.setFillColor(sf::Color::White);
 
-    // ---- Labels ----
     sf::Text label2D("2-Ball", font, 20);
     label2D.setFillColor(sf::Color::White);
-    label2D.setPosition(1400/6 - 20, 520);
-
+    label2D.setPosition(WINDOW_WIDTH / 6.f - 20.f, 520.f);
 
     sf::Text label3D("3-Ball", font, 20);
     label3D.setFillColor(sf::Color::White);
-    label3D.setPosition(1400/2 - 20, 520);
+    label3D.setPosition(WINDOW_WIDTH / 2.f - 20.f, 520.f);
 
     sf::Text labelY("Distance from center", font, 20);
     labelY.setFillColor(sf::Color::White);
-    labelY.setRotation(-90);
-    labelY.setPosition(1400 - 160, 420);
+    labelY.setRotation(-90.f);
+    labelY.setPosition(WINDOW_WIDTH - 160.f, 420.f);
 
-    sf::Clock clock;
+    sf::Clock simClock;
+    sf::Clock frameClock;
+
     float accumulator = 0.f;
     float simTime = 0.f;
 
-    while(window.isOpen())
+    while (window.isOpen())
     {
-        sf::Event e;
-        while(window.pollEvent(e))
+        sf::Event event;
+        while (window.pollEvent(event))
         {
-            if(e.type == sf::Event::Closed) window.close();
+            if (event.type == sf::Event::Closed)
+                window.close();
 
-            if(e.type == sf::Event::MouseButtonPressed)
+            if (event.type == sf::Event::MouseButtonPressed)
             {
-                if(button.getGlobalBounds().contains(e.mouseButton.x,e.mouseButton.y))
+                if (button.getGlobalBounds().contains(
+                        static_cast<float>(event.mouseButton.x),
+                        static_cast<float>(event.mouseButton.y)))
                 {
-                    disk.clear();
-                    ball.clear();
-                    index = 0;
+                    diskSamples.clear();
+                    ballSamples.clear();
+                    sampleIndex = 0;
                     running = true;
                     simTime = 0.f;
                     accumulator = 0.f;
-                    clock.restart();
+                    simClock.restart();
                 }
             }
         }
 
-        if(running && index < MAX)
+        if (running && sampleIndex < MAX_SAMPLES)
         {
-            float dt = clock.restart().asSeconds();
+            float dt = simClock.restart().asSeconds();
             simTime += dt;
 
-            float ramp = 1.f / (1.f + exp(-1.2f * (simTime - 2.f)));
+            float ramp = 1.f / (1.f + std::exp(-1.2f * (simTime - 2.f)));
             float rate = 600.f * ramp + 30.f;
 
             accumulator += dt * rate;
 
-            while(accumulator >= 1.f && index < MAX)
+            while (accumulator >= 1.f && sampleIndex < MAX_SAMPLES)
             {
-                if(index % 2 == 0) sampleDisk(disk);
-                else              sampleBall(ball);
-                index++;
+                if (sampleIndex % 2 == 0)
+                    sampleDisk(diskSamples);
+                else
+                    sampleBall(ballSamples);
+
+                sampleIndex++;
                 accumulator -= 1.f;
             }
         }
 
-
         window.clear(sf::Color::Black);
 
-        sf::CircleShape diskShape(1400/3 * 0.4f);
-        diskShape.setPosition(1400/6 - diskShape.getRadius(), 300 - diskShape.getRadius());
+        sf::CircleShape diskShape(WINDOW_WIDTH / 3.f * 0.4f);
+        diskShape.setPosition(
+            WINDOW_WIDTH / 6.f - diskShape.getRadius(),
+            300.f - diskShape.getRadius()
+        );
         diskShape.setFillColor(sf::Color::Transparent);
-        diskShape.setOutlineThickness(2);
+        diskShape.setOutlineThickness(2.f);
         diskShape.setOutlineColor(sf::Color::White);
         window.draw(diskShape);
 
-        for(auto &p : disk)
+        for (const auto& p : diskSamples)
         {
-            sf::CircleShape d(2);
+            sf::CircleShape d(2.f);
             d.setFillColor(sf::Color(220, 60, 60));
-            d.setPosition(diskToScreen(p.x,p.y));
+            d.setPosition(diskToScreen(p.x, p.y));
             window.draw(d);
         }
 
         drawSphere(window);
         drawLatitudes(window);
 
-        for(auto &p : ball)
+        for (const auto& p : ballSamples)
         {
-            sf::CircleShape d(2);
+            sf::CircleShape d(2.f);
             d.setFillColor(sf::Color(90, 60, 220));
-            d.setPosition(ballToScreen(p.x,p.y,p.z));
+            d.setPosition(ballToScreen(p.x, p.y, p.z));
             window.draw(d);
         }
 
-        for(int i=0;i<disk.size();i++)
+        for (std::size_t i = 0; i < diskSamples.size(); ++i)
         {
-            sf::CircleShape d(2);
+            sf::CircleShape d(2.f);
             d.setFillColor(sf::Color(220, 60, 60));
-            d.setPosition(graphToScreen(i,disk[i].r));
+            d.setPosition(graphToScreen(static_cast<int>(i), diskSamples[i].radius));
             window.draw(d);
         }
 
-        for(int i=0;i<ball.size();i++)
+        for (std::size_t i = 0; i < ballSamples.size(); ++i)
         {
-            sf::CircleShape d(2);
-            d.setFillColor(sf::Color(sf::Color(90, 60, 220)));
-            d.setPosition(graphToScreen(i,ball[i].r));
+            sf::CircleShape d(2.f);
+            d.setFillColor(sf::Color(90, 60, 220));
+            d.setPosition(graphToScreen(static_cast<int>(i), ballSamples[i].radius));
             window.draw(d);
         }
 
         window.draw(button);
-        window.draw(text);
-
+        window.draw(buttonText);
         window.draw(label2D);
         window.draw(label3D);
         window.draw(labelY);
@@ -149,4 +164,6 @@ int main()
 
         window.display();
     }
+
+    return 0;
 }

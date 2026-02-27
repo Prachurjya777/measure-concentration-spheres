@@ -1,8 +1,20 @@
 #pragma once
 #include <vector>
 
-struct P2{ float x,y,r; };
-struct P3{ float x,y,z,r; };
+struct Sample2D
+{
+    float x;
+    float y;
+    float radius;
+};
 
-void sampleDisk(std::vector<P2>& disk);
-void sampleBall(std::vector<P3>& ball);
+struct Sample3D
+{
+    float x;
+    float y;
+    float z;
+    float radius;
+};
+
+void sampleDisk(std::vector<Sample2D>& samples);
+void sampleBall(std::vector<Sample3D>& samples);

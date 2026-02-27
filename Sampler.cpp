@@ -2,17 +2,48 @@
 #include <random>
 #include <cmath>
 
-static std::mt19937 rng(std::random_device{}());
-static std::uniform_real_distribution<float> U(0.f,1.f);
-static float rand01(){ return U(rng); }
-static const float PI=3.14159265358979323846f;
+namespace
+{
+    // Random engine
+    std::mt19937 rng(std::random_device{}());
 
-void sampleDisk(std::vector<P2>& disk){
-    float u=rand01(),t=2*PI*rand01(),r=sqrt(u);
-    disk.push_back({r*cos(t),r*sin(t),r});
+    // Uniform distribution in [0,1)
+    std::uniform_real_distribution<float> uniform01(0.0f, 1.0f);
+
+    inline float rand01()
+    {
+        return uniform01(rng);
+    }
+
+    constexpr float PI = 3.14159265358979323846f;
 }
 
-void sampleBall(std::vector<P3>& ball){
-    float u=rand01(),t=2*PI*rand01(),p=acos(2*rand01()-1),r=pow(u,1.f/3.f);
-    ball.push_back({r*sin(p)*cos(t),r*sin(p)*sin(t),r*cos(p),r});
+void sampleDisk(std::vector<Sample2D>& samples)
+{
+    const float u = rand01();                 
+    const float theta = 2.0f * PI * rand01();
+    const float r = std::sqrt(u);             
+
+    samples.push_back({
+        r * std::cos(theta),
+        r * std::sin(theta),
+        r
+    });
+}
+
+void sampleBall(std::vector<Sample3D>& samples)
+{
+    const float u = rand01();
+    const float theta = 2.0f * PI * rand01();
+    const float phi = std::acos(2.0f * rand01() - 1.0f);
+    const float r = std::cbrt(u);            
+
+    const float sinPhi = std::sin(phi);
+
+    samples.push_back({
+        r * sinPhi * std::cos(theta),
+        r * sinPhi * std::sin(theta),
+        r * std::cos(phi),
+        r
+    });
 }

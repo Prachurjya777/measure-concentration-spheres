@@ -2,86 +2,80 @@
 #include "Projection.h"
 #include <cmath>
 
-static const float PI = 3.14159265358979323846f;
-
-static void drawArc(sf::RenderWindow& window, sf::VertexArray& arc)
+namespace
 {
-    // draw twice for thickness
-    for(int pass=0; pass<2; pass++)
+    constexpr float PI = 3.14159265358979323846f;
+
+    void drawArc(sf::RenderWindow& window, const sf::VertexArray& arc)
     {
+        window.draw(arc);
         sf::Transform T;
-        if(pass==1) T.translate(0.7f, 0.7f);
-
-        for(unsigned i=0;i<arc.getVertexCount();i++)
-            arc[i].color = sf::Color::White;
-
+        T.translate(0.7f, 0.7f);
         window.draw(arc, T);
-    }
-}
-
-static void drawLatitudesLayer(sf::RenderWindow& window)
-{
-    for(int i=1;i<=6;i++)
-    {
-        float z = -1 + 2.f*i/7.f;
-        float r = sqrt(1 - z*z);
-
-        sf::VertexArray arc(sf::LineStrip,150);
-        for(int k=0;k<150;k++)
-        {
-            float t = 2*PI*k/149;
-            float x = r*cos(t);
-            float y = r*sin(t);
-
-            arc[k].position = ballToScreen(x,y,z);
-        }
-        drawArc(window, arc);
-    }
-}
-
-static void drawLongitudesLayer(sf::RenderWindow& window)
-{
-    for(int i=0;i<10;i++)
-    {
-        float phi = 2*PI*i/10.f;
-
-        sf::VertexArray arc(sf::LineStrip,150);
-        for(int k=0;k<150;k++)
-        {
-            float theta = PI*k/149;
-            float x = sin(theta)*cos(phi);
-            float y = sin(theta)*sin(phi);
-            float z = cos(theta);
-
-            arc[k].position = ballToScreen(x,y,z);
-        }
-        drawArc(window, arc);
     }
 }
 
 void drawSphere(sf::RenderWindow& window)
 {
-    sf::VertexArray outline(sf::LineStrip,200);
-    for(int i=0;i<200;i++)
-    {
-        float t = 2*PI*i/199;
-        float x = cos(t);
-        float y = sin(t);
-        float z = 0;
+    sf::VertexArray outline(sf::LineStrip, 200);
 
-        outline[i].position = ballToScreen(x,y,z);
+    for (int i = 0; i < 200; ++i)
+    {
+        float t = 2.f * PI * i / 199.f;
+        outline[i].position = ballToScreen(std::cos(t), std::sin(t), 0.f);
         outline[i].color = sf::Color::White;
     }
 
-    // thickness
     window.draw(outline);
+
     sf::Transform T;
-    T.translate(0.7f,0.7f);
-    window.draw(outline,T);
+    T.translate(0.7f, 0.7f);
+    window.draw(outline, T);
 }
 
 void drawLatitudes(sf::RenderWindow& window)
 {
-    drawLatitudesLayer(window);
-    drawLongitudesLayer(window);
+    const int LAT = 7;
+    const int LON = 10;
+
+    for (int i = 1; i < LAT; ++i)
+    {
+        float v = PI * i / LAT;
+        float z = std::cos(v);
+        float r = std::sin(v);
+
+        sf::VertexArray arc(sf::LineStrip, 160);
+
+        for (int k = 0; k < 160; ++k)
+        {
+            float u = 2.f * PI * k / 159.f;
+            float x = r * std::cos(u);
+            float y = r * std::sin(u);
+
+            arc[k].position = ballToScreen(x, y, z);
+            arc[k].color = sf::Color::White;
+        }
+
+        drawArc(window, arc);
+    }
+
+    for (int j = 0; j < LON; ++j)
+    {
+        float u = 2.f * PI * j / LON;
+
+        sf::VertexArray arc(sf::LineStrip, 160);
+
+        for (int k = 0; k < 160; ++k)
+        {
+            float v = PI * k / 159.f;
+            float x = std::sin(v) * std::cos(u);
+            float y = std::sin(v) * std::sin(u);
+            float z = std::cos(v);
+
+            arc[k].position = ballToScreen(x, y, z);
+            arc[k].color = sf::Color::White;
+        }
+
+        drawArc(window, arc);
+    }
 }
